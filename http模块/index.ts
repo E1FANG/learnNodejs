@@ -15,11 +15,25 @@ server.on("request", (request: IncomingMessage, response: ServerResponse) => {
   console.log(url.parse(path));
   // response.setHeader("Content-Type", "text/html; chartset=utf-8");
   // /index.html => index.html
-  const fileName = pathname.substr(1);
+  let fileName = pathname.substr(1);
+  if (fileName === "") {
+    fileName = "index.html";
+  }
   fs.readFile(p.resolve(publicDir, fileName), (error, data) => {
     if (error) {
-      response.statusCode = 404;
-      response.end(`你要的文件不存在`);
+      if (error.errno === -4058) {
+        response.statusCode = 404;
+        fs.readFile(p.resolve(publicDir, "404.html"), (error, data) => {
+          response.end(data);
+        });
+        response.end(`你要的文件不存在`);
+      } else if (error.errno === -4068) {
+        response.statusCode = 403;
+        response.end("无权查看目录内容");
+      } else {
+        response.statusCode = 500;
+        response.end(`服务器繁忙，请稍后重试`);
+      }
     } else {
       response.end(data.toString());
     }
